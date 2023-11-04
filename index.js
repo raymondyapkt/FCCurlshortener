@@ -1,20 +1,15 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const port = process.env.PORT || 3000;
 const app = express();
 let bodyParser = require('body-parser')
 let dns  = require('dns')
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-
-// Basic Configuration
-const port = process.env.PORT || 3000;
-
 app.use(cors());
 
 app.use('/public', express.static(`${process.cwd()}/public`));
-
 app.get('/', function(req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
@@ -26,38 +21,37 @@ app.get('/api/hello', function(req, res) {
 
 // ####################
 
+const { promisify } = require('util');
+const dnsLookup = promisify(dns.lookup);
+let urlN = 0;
+let sUrlJson = {};
 
 app.route("/api/shorturl").get((req, res) => {
   const url = req.body.url;
   res.json({url:url});
-}).post((req, res) => {
-  console.log(req.body.url)
-  
-  try{ 
-    var {hostname} = new URL(req.body.url)
-    console.log(hostname)
+}).post(async (req, res) => {
+  try {
+    const { hostname } = new URL(req.body.url);
+    // Perform DNS lookup
+    const { address, family } = await dnsLookup(hostname);
+    console.log(`The IP address is ${address} and the IP version is ${family}`);
+    urlN ++ ;
+    sUrlJson[urlN] =  req.body.url;
+    console.log(sUrlJson);
+    console.log(sUrlJson[urlN]);
+    res.json({ original_url: req.body.url, short_url: urlN });
   } catch (e) {
-    res.json({ error: 'invalid url' })
-    console.error(e); }
-
-   // if ( hostname.substring(0, 3) === "joh" ) {
-   //   res.json({ error: 'invalid url' })
-   // }    
-
-   dns.lookup(hostname, (err, address, family) => {
-    if (err) {
-      res.json({ error: 'invalid url' })
-    } else {
-      console.log(`The IP address is ${address} and the IP version is ${family}`);
-    }
+    // console.error(e);
+    res.json({ error: 'invalid url' });
+  }
 });
 
-
-    
-  res.json({original_url:req.body.url,short_url:1})
+app.get("/api/shorturl/:urlN", function (req, res) {
+  var { urlN } = req.params
+  console.log(sUrlJson[urlN]);
+  res.redirect(sUrlJson[urlN])
 
 });
-
 
 // ####################
 app.listen(port, function() {
