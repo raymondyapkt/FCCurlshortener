@@ -23,8 +23,8 @@ app.get('/api/hello', function(req, res) {
 
 const { promisify } = require('util');
 const dnsLookup = promisify(dns.lookup);
-let urlN = 0;
-let sUrlJson = {};
+let uidN = 0;
+let exlist = {};
 
 app.route("/api/shorturl").get((req, res) => {
   const url = req.body.url;
